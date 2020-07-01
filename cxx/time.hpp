@@ -25,6 +25,7 @@ namespace cxx
             static Time weeks(int weeks);
             static Time months(int months);
             static Time years(int years);
+            static Time date(int years, int months, int days, int hours, int minutes, int seconds);
 
             // getYear()
             // setYear()

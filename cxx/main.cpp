@@ -2,6 +2,7 @@
 #include "platform.hpp"
 #include "float.hpp"
 #include "time.hpp"
+#include "string.hpp"
 #include <thread>
 #include <chrono>
 
@@ -23,6 +24,8 @@ int main()
     std::cerr << "nan:" << f32::nan() << std::endl;
     std::cerr << "inf:" << f32::inf() << std::endl;
     std::cerr << "epsilon:" << f32::epsilon() << std::endl;
+    std::cerr << "e:" << f32::e() << std::endl;
+    std::cerr << "pi:" << f32::pi() << std::endl;
 
     f32 a = 0;
     f32 b = 4.5;
@@ -31,10 +34,8 @@ int main()
     std::cerr << a + b + c << std::endl;
     std::cerr << c % b << " vs " << b % c << std::endl;
     std::cerr << c + 18.0 << std::endl;
+    std::cerr << a.close(f32::epsilon()) << std::endl;
+    std::cerr << f32(1.24).floor() << std::endl;
 
-    auto s = Time::now();
-    std::this_thread::sleep_for(std::chrono::seconds(5));
-    auto e = Time::now();
-
-    std::cerr << "s: " << s.c() << " e: " << e.c() << std::endl;
+    auto s = String::format("hello {} lelele", 12);
 }

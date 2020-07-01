@@ -7,6 +7,7 @@ f128
 #include <cfloat>
 #include <cmath>
 #include <iostream>
+#include "int.hpp"
 
 namespace cxx
 {
@@ -42,6 +43,15 @@ namespace cxx
                 return FLT_EPSILON;
             }
 
+            static f32 e() {
+                return M_E;
+            }
+
+            static f32 pi() {
+                return M_PI;
+            }
+
+        
             int sign() const {
                 return value >= 0 ? 1 : -1;
             }
@@ -65,6 +75,41 @@ namespace cxx
                 return 0;
             }
 
+            f32 round() const {
+                return std::round(value);
+            }
+
+            f32 floor() const {
+                return std::floor(value);
+            }
+
+            f32 ceil() const {
+                return std::ceil(value);
+            }
+
+            f32 abs() const {
+                return std::abs(value);
+            }
+
+            f32 pow(f32 power) const {
+                return std::pow(value, power.value);
+            }
+
+            f32 exp() const {
+                return std::exp(value);
+            }
+
+            f32 log(f32 base = f32::e()) const {
+                if(base.value == f32::e().value) return std::log(value);
+                if(base.value == 2.f) return std::log2(value);
+                if(base.value == 10.f) return std::log10(value);
+                return std::log(value) / std::log(base.value);
+            }
+
+            bool close(f32 other, f32 error = f32::epsilon()) const {
+                return std::abs(value - other.value) <= error.value;
+            }
+
             // decimal()
             // integer()
 
@@ -73,6 +118,12 @@ namespace cxx
             }
 
         private:
+
+            struct Ieee {
+                int sign: 1;
+                int exponent: 8;
+                int mantissa: 23;
+            };
 
             float value;
     };
@@ -95,6 +146,18 @@ namespace cxx
 
     f32 operator%(f32 left, f32 right) {
         return fmodf(left.c(), right.c());
+    }
+
+    bool operator==(f32 left, f32 right) {
+        return left.c() == right.c();
+    }
+
+    bool operator!=(f32 left, f32 right) {
+        return left.c() != right.c();
+    }
+
+    bool operator<(f32 left, f32 right) {
+        return left.c() < right.c();
     }
 
     std::ostream & operator<<(std::ostream & stream, f32 value) {
