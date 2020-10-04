@@ -1,13 +1,8 @@
-/*
-f16
-f32
-f64
-f128
-*/
+#pragma once
 #include <cfloat>
 #include <cmath>
 #include <iostream>
-#include "int.hpp"
+#include "i32.hpp"
 
 namespace cxx
 {
@@ -18,11 +13,19 @@ namespace cxx
             f32(): value(0) {
             }
 
-            f32(float value): value(value) {
+            template<typename T>
+            f32(T value): value(value) {
+                static_assert(std::is_same<T, float>::value, "f32 only constructable from float.");
             }
 
-            static f32 random();
+            static f32 random() {
+                return 0.f;
+            }
             
+            static f32 parse(const void * v) {
+                return 0.f;
+            }
+
             static f32 max() {
                 return FLT_MAX;
             }
@@ -32,7 +35,7 @@ namespace cxx
             }
 
             static f32 inf() {
-                return INFINITY;
+                return HUGE_VALF;
             }
             
             static f32 nan() {
@@ -44,35 +47,25 @@ namespace cxx
             }
 
             static f32 e() {
-                return M_E;
+                return float(M_E);
             }
 
             static f32 pi() {
-                return M_PI;
+                return float(M_PI);
             }
 
-        
-            int sign() const {
-                return value >= 0 ? 1 : -1;
+            struct IEEE {
+                int sign: 1;
+                int exponent: 8;
+                int mantissa: 23;
+            };
+
+            IEEE ieee() const {
+                return *reinterpret_cast<const IEEE*>(&value);
             }
 
-            int exponent() const {
-                union {
-                    float value;
-                    struct Ieee {
-                        int sign: 1;
-                        int exponent: 8;
-                        int mantissa: 23;
-                    } ieee;
-                } intospect;
-
-                intospect.value = value;
-                
-                return intospect.ieee.exponent;
-            }
-
-            int mantissa() const {
-                return 0;
+            bool is_conformant() const {
+                return true;
             }
 
             f32 round() const {
@@ -99,7 +92,11 @@ namespace cxx
                 return std::exp(value);
             }
 
-            f32 log(f32 base = f32::e()) const {
+            f32 log() const {
+                return std::log(value);
+            }
+
+            f32 log(f32 base) const {
                 if(base.value == f32::e().value) return std::log(value);
                 if(base.value == 2.f) return std::log2(value);
                 if(base.value == 10.f) return std::log10(value);
@@ -110,20 +107,11 @@ namespace cxx
                 return std::abs(value - other.value) <= error.value;
             }
 
-            // decimal()
-            // integer()
-
             float c() {
                 return value;
             }
 
         private:
-
-            struct Ieee {
-                int sign: 1;
-                int exponent: 8;
-                int mantissa: 23;
-            };
 
             float value;
     };
@@ -162,5 +150,9 @@ namespace cxx
 
     std::ostream & operator<<(std::ostream & stream, f32 value) {
         return stream << value.c();
+    }
+
+    f32 operator "" _f32(long double x) {
+        return f32(float(x));
     }
 }
