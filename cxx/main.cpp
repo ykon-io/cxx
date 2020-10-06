@@ -1,6 +1,8 @@
 #include "console.hpp"
 #include "platform.hpp"
 #include "c8.hpp"
+#include "i8.hpp"
+#include "i32.hpp"
 #include "f32.hpp"
 #include "f64.hpp"
 #include "f128.hpp"
@@ -61,7 +63,7 @@ int main()
     std::cerr << it << " " << g << " " << h << std::endl;
 
     std::cerr << g + h * 55_i32 << std::endl;
-
-  
+    std::cerr << i8::max() << std::endl;
+    std::cerr << 127_i8 + 127_i8 << i32::max().i8() << std::endl;
     return 0;
 }

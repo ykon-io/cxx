@@ -39,6 +39,10 @@ namespace cxx
                 return value;
             }
 
+            i8 i8() const {
+                return i8::of(value);
+            }
+
         private:
 
             int32_t value;
