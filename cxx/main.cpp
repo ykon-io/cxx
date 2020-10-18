@@ -11,8 +11,48 @@
 #include <thread>
 #include <chrono>
 #include "args.hpp"
+#include "build.hpp"
 
 using namespace cxx;
+
+void build() {
+    auto settings = build::Settings()   
+                    .cxx20()
+                    .o3()
+                    .clang()
+                    .link(".../.../lib1",
+                          ".../.../lib2")
+                    .include(".../.../include1",
+                             ".../.../include2")
+                    .linker(".../...")
+                    .release();
+
+    auto debug_settings = settings
+                          .debug()
+                          .o0();
+
+    auto compute_library = build::Library("compute")
+                           .source("compute/io/png.cpp",
+                                   "compute/io/tiff.cpp",
+                                   "compute/io/dng.cpp",
+                                   "compute/io/csv.cpp")
+                           .include("compute/",
+                                    "usr/include")
+                           .compile(settings)
+                           .pack();
+
+    auto compute_cli = build::Executable("build/compute-cli")
+                       .source("")
+                       .include()
+                       .compile(settings)
+                       .pack();
+
+    auto compute_package = build::Package("package")
+                           .library("...", compute_library)
+                           .executable("...", compute_cli)
+                           .file("...")
+                           .publish("...");    
+}
 
 int main()
 {
@@ -65,5 +105,6 @@ int main()
     std::cerr << g + h * 55_i32 << std::endl;
     std::cerr << i8::max() << std::endl;
     std::cerr << 127_i8 + 127_i8 << i32::max().i8() << std::endl;
+
     return 0;
 }
