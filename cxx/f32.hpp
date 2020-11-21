@@ -61,13 +61,14 @@ namespace cxx
             };
 
             IEEE ieee() const {
+                static_assert(
+                    std::numeric_limits<float>::is_iec559, 
+                    "ieee() only supported for IEC559 implementations."
+                );
+
                 return *reinterpret_cast<const IEEE*>(&value);
             }
-
-            bool is_conformant() const {
-                return true;
-            }
-
+            
             f32 round() const {
                 return std::round(value);
             }

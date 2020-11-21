@@ -1,4 +1,4 @@
-namespace Cxx
+namespace cxx
 {
     class Randomizer
     {
