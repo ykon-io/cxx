@@ -11,51 +11,150 @@
 #include <thread>
 #include <chrono>
 #include "args.hpp"
-#include "build.hpp"
+#include "../angle/angle.hpp"
+
+#include <variant>
 
 using namespace cxx;
+using namespace angle;
 
-void build() {
-    auto settings = build::Settings()   
-                    .cxx20()
-                    .o3()
-                    .clang()
-                    .link(".../.../lib1",
-                          ".../.../lib2")
-                    .include(".../.../include1",
-                             ".../.../include2")
-                    .linker(".../...")
-                    .release();
+template<class A, class ... As>
+size_t lengthof(const A & a, As ... as) {
+    return lengthof(a) + lengthof(as...);
+}
 
-    auto debug_settings = settings
-                          .debug()
-                          .o0();
+template<class A, class ... As>
+size_t lengthof(const A * a, As ... as) {
+    return lengthof(a) + lengthof(as...);
+}
 
-    auto compute_library = build::Library("compute")
-                           .source("compute/io/png.cpp",
-                                   "compute/io/tiff.cpp",
-                                   "compute/io/dng.cpp",
-                                   "compute/io/csv.cpp")
-                           .include("compute/",
-                                    "usr/include")
-                           .compile(settings)
-                           .pack();
+template<>
+size_t lengthof<std::string>(const std::string & s) {
+    return s.length();
+}
 
-    auto compute_cli = build::Executable("build/compute-cli")
-                       .source("")
-                       .include()
-                       .compile(settings)
-                       .pack();
+template<>
+size_t lengthof<char>(const char * s) {
+    return strlen(s);
+}
 
-    auto compute_package = build::Package("package")
-                           .library("...", compute_library)
-                           .executable("...", compute_cli)
-                           .file("...")
-                           .publish("...");    
+template<class S, class ... Ss>
+void insert(std::string & r, int i, const S & s, Ss ... ss) {
+    insert(r, i, s);
+    insert(r, i + lengthof(s), ss...);
+}
+
+
+template<class S, class ... Ss>
+void insert(std::string & r, int i, const S * s, Ss ... ss) {
+    insert(r, i, s);
+    insert(r, i + lengthof(s), ss...);
+}
+
+template<>
+void insert<std::string>(std::string & r, int i, const std::string & s) {
+    std::copy(s.begin(), s.end(), r.begin() + i);
+}
+
+
+template<>
+void insert<char>(std::string & r, int i, const char * s) {
+    std::copy(s, s + lengthof(s), r.begin() + i);
+}
+
+template<class A, class ... As>
+std::string strcat(A a, As ... as) {
+    std::string s(lengthof(a, as...), ' ');
+    insert(s, 0, a, as...);
+    return s;
 }
 
 int main()
 {
+    auto sct = strcat("hello", " ", "i'm", " ", "lol", " ", std::string("max"));
+    std::cerr << "catted: " << sct << std::endl;
+
+
+    Model<int> model;
+
+    struct S {
+        int a;
+        std::string b;
+        float c;
+    };
+
+    auto s = Scene(
+        Rectangle(
+            Text("in rect 1"),
+            Text("in rect 2")
+              .color(0, 0, 0)
+              .pixels(12)
+        ) .width(10)
+          .height(20),
+        Row(
+            Text("lol")
+              .text("lolol")
+              .pixels(12)
+              .points(13.4)
+              .font("Arial")
+              .bold()
+              .italic()
+              .underline()
+              .color(64, 64, 128),
+            Image("bird.png")
+              .width(100)
+              .height(12)
+              .transform(0)
+              .filter(0),
+            Oneof(
+                Image("cat.png")
+                  .width(100)
+                  .height(44),
+                Text("Image of cat"),
+                Column(
+                    Rectangle(),
+                    Text("lelele"),
+                    Image("hi.png")
+                )
+            ) .select(2)
+        ),
+        List(
+            Text()
+             .points(14.3)
+             .font("Courier")
+             .bold()
+             .color(14, 44, 55),
+            Text(),
+            Rectangle()
+        ),
+        List(
+            model,
+            [](auto m) {
+                return Text("hi");
+            }
+        ),
+        Grid(
+            Text("a"),
+            Text("b"),
+            Text("c"),
+            Row(
+                Text("d"),
+                Text("f")
+            )
+        ),
+        Grid(
+            model,
+            [](const int & m) {
+                return Text("hi");
+            }
+        )
+        .rows(2)
+        .columns(2)
+    );
+
+    s.print();
+    s.draw();
+
     std::cerr << "Hi " << arg.size() << " " << arg[0];
 
     std::cerr << platform::isAndroid() << std::endl;
