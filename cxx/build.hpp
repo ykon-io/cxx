@@ -13,6 +13,20 @@ namespace build {
     struct Package;
     struct Settings;
 
+    struct Cache {
+
+        Cache() {
+        }
+
+        void request(const Library & l, const Settings & s) {
+            // check if Library exists
+            // check if Settings were compiled for library
+            // 
+        }
+
+        std::string path = "~";
+    };
+
     struct Registry {
 
         static Registry & instance() {
@@ -39,8 +53,6 @@ namespace build {
         std::unordered_set<const Library *> libraries;
         std::unordered_set<const Executable *> executables;
     };
-
-
 
     struct Settings {
         Settings() {
@@ -159,115 +171,44 @@ namespace build {
     };
 
     std::ostream & operator<<(std::ostream & stream, const Settings & s) {
-        stream << s.data.compiler << " ";
+        stream << s.data.compiler;
 
         switch(s.data.o) {
-            case 0: stream << "-O0 "; break;
-            case 1: stream << "-O1 "; break;
-            case 2: stream << "-O2 "; break;
-            case 3: stream << "-O3 "; break;
+            case 0: stream << " -O0"; break;
+            case 1: stream << " -O1"; break;
+            case 2: stream << " -O2"; break;
+            case 3: stream << " -O3"; break;
             default: break;
         }
 
         switch(s.data.c) {
-            case 89: stream << "-std=c89 "; break;
-            case 90: stream << "-std=c90 "; break;
-            case 99: stream << "-std=c99 "; break;
-            case 11: stream << "-std=c11 "; break;
-            case 17: stream << "-std=c17 "; break;
+            case 89: stream << " -std=c89"; break;
+            case 90: stream << " -std=c90"; break;
+            case 99: stream << " -std=c99"; break;
+            case 11: stream << " -std=c11"; break;
+            case 17: stream << " -std=c17"; break;
             default: break;
         }
         
         switch(s.data.cxx) {
-            case 89: stream << "-std=c++98 "; break;
-            case 3: stream << "-std=c++03 "; break;
-            case 11: stream << "-std=c++11 "; break;
-            case 14: stream << "-std=c++14 "; break;
-            case 17: stream << "-std=c++17 "; break;
-            case 20: stream << "-std=c++20 "; break;
+            case 89: stream << " -std=c++98"; break;
+            case 3:  stream << " -std=c++03"; break;
+            case 11: stream << " -std=c++11"; break;
+            case 14: stream << " -std=c++14"; break;
+            case 17: stream << " -std=c++17"; break;
+            case 20: stream << " -std=c++20"; break;
             default: break;
         }
 
         if(s.data.debug) {
-            stream << "-g ";
+            stream << " -g";
         }
 
         return stream;
     }
 
-    struct Library {
-        Library(const std::string & name): name(name) {
-            Registry::add(this);
-        }
-
-        Library(const Library & l): name(l.name),
-                                    sources(l.sources),
-                                    headers(l.headers),
-                                    objects(l.objects),
-                                    before_functions(l.before_functions),
-                                    after_functions(l.after_functions),
-                                    settings(l.settings) {
-            Registry::add(this);
-        }
-
-        ~Library() {
-            Registry::remove(this);
-        }
-
-        template<class F, class... Fs>
-        Library & source(F f, Fs... fs) {
-            sources.push_back(f);
-            if constexpr (sizeof...(fs) > 0) {   
-                source(fs...);
-            }
-
-            return *this;
-        }
-
-        template<class F, class... Fs>
-        Library & header(F f, Fs... fs) {
-            headers.push_back(f);
-            if constexpr (sizeof...(fs) > 0) {   
-                header(fs...);
-            }
-
-            return *this;
-        }
-
-        template<class F, class... Fs>
-        Library & object(F f, Fs... fs) {
-            objects.push_back(f);
-            if constexpr (sizeof...(fs) > 0) {   
-                objects(fs...);
-            }
-
-            return *this;
-        }
-
-        Library & config(const Settings & s) {
-            settings = s;
-            return *this;
-        }
-
-        template<class F, class... Fs>
-        Library & before(F f, Fs... fs) {
-            before_functions.push_back(f);
-            if constexpr (sizeof...(fs) > 0) {   
-                before(fs...);
-            }
-
-            return *this;
-        }
-
-        template<class F, class... Fs>
-        Library & after(F f, Fs... fs) {
-            after_functions.push_back(f);
-            if constexpr (sizeof...(fs) > 0) {   
-                after(fs...);
-            }
-
-            return *this;
-        }
+    template<class Derived>
+    struct Target {
 
         std::string name;
         std::vector<std::string> sources;
@@ -276,45 +217,109 @@ namespace build {
         std::vector<std::function<void()>> before_functions;
         std::vector<std::function<void()>> after_functions;
         Settings settings;
-    };
 
-    struct Executable {
-
-        Executable(const std::string & name): name(name) {
-            Registry::add(this);
+        Target(const std::string & name): name(name) {
+            Registry::add(static_cast<Derived*>(this));
         }
 
-        Executable & source() { 
-            return *this;
+        Target(const Target & l): name(l.name),
+                                    sources(l.sources),
+                                    headers(l.headers),
+                                    objects(l.objects),
+                                    before_functions(l.before_functions),
+                                    after_functions(l.after_functions),
+                                    settings(l.settings) {
+            Registry::add(static_cast<Derived*>(this));
+        }
+
+        ~Target() {
+            Registry::remove(static_cast<Derived*>(this));
+        }
+
+        template<class F, class... Fs>
+        Derived & source(F f, Fs... fs) {
+            sources.push_back(f);
+            if constexpr (sizeof...(fs) > 0) source(fs...);
+            return *static_cast<Derived*>(this);
         }
         
-        Executable & header() {
-            return *this;
+        template<class F, class... Fs>
+        Derived & source_if(bool c, F f, Fs... fs) {
+            if(c) source(f, fs...);
+            return *static_cast<Derived*>(this);
         }
 
-        Executable & config() {
-            return *this;
+        template<class F, class... Fs>
+        Derived & header(F f, Fs... fs) {
+            headers.push_back(f);
+            if constexpr (sizeof...(fs) > 0) header(fs...);
+            return *static_cast<Derived*>(this);
         }
 
-        Executable & before() {
-            return *this;
+        template<class F, class... Fs>
+        Derived & header_if(bool c, F f, Fs... fs) {
+            if(c) header(f, fs...);
+            return *static_cast<Derived*>(this);
         }
 
-        Executable & after() {
-            return *this;
+        template<class F, class... Fs>
+        Derived & object(F f, Fs... fs) {
+            objects.push_back(f);
+            if constexpr (sizeof...(fs) > 0) objects(fs...);
+            return *static_cast<Derived*>(this);
         }
 
-        Executable & depend(const Library & l) {
-            return *this;
+        template<class F, class... Fs>
+        Derived & object_if(bool c, F f, Fs... fs) {
+            if(c) objects(f, fs...);
+            return *static_cast<Derived*>(this);
         }
 
-        std::string name;
+        Derived & config(const Settings & s) {
+            settings = s;
+            return *static_cast<Derived*>(this);
+        }
+
+        template<class F, class... Fs>
+        Derived & before(F f, Fs... fs) {
+            before_functions.push_back(f);
+            if constexpr (sizeof...(fs) > 0) before(fs...);
+            return *static_cast<Derived*>(this);
+        }
+
+        template<class F, class... Fs>
+        Derived & before_if(bool c, F f, Fs... fs) {
+            if(c) before(f, fs...);
+            return *static_cast<Derived*>(this);
+        }
+
+        template<class F, class... Fs>
+        Derived & after(F f, Fs... fs) {
+            after_functions.push_back(f);
+            if constexpr (sizeof...(fs) > 0) after(fs...);
+            return *static_cast<Derived*>(this);
+        }
+
+        template<class F, class... Fs>
+        Derived & after_if(bool c, F f, Fs... fs) {
+            if(c) after(f, fs...);
+            return *static_cast<Derived*>(this);
+        }
+
+        template<class F, class... Fs>
+        Derived & depend(F f, Fs... fs) {
+            return *static_cast<Derived*>(this);
+        }
     };
 
-    struct Package {
-        Package & library();
-        Package & executable();
-        Package & install();
+    struct Library: Target<Library> {
+        Library(const std::string & name): Target(name) {
+        }
+    };
+
+    struct Executable: Target<Executable> {
+        Executable(const std::string & name): Target(name) {
+        }
     };
 
     struct Options {
@@ -338,12 +343,55 @@ namespace build {
         }
 
         bool is(int i, const char * name) const {
-            return strcmp(argv[i], name) == 0;
+            return i >= argc ? false : strcmp(argv[i], name) == 0;
         }
 
         int argc;
         char ** argv;
     };
+
+    class Graph {
+        
+    };
+
+    std::string include_string(const std::vector<std::string> & includes) {
+        std::string s;
+        for(const std::string & i : includes) {
+            s += " -include " + i;
+        }
+
+        return s;
+    }
+
+    std::string link_string(const std::vector<std::string> & links) {
+        return "";
+    }
+
+    bool pass(const Library & l) {
+        auto includes = build::include_string(l.headers);
+        std::cerr << "building " << l.name 
+                  << " with " << l.settings << includes << std::endl;
+        for(const auto & b : l.before_functions) {
+            b();
+        }
+
+        for(const std::string & s : l.sources) {
+            std::cerr << "* " << s << std::endl;
+        }
+
+        for(const auto & a : l.after_functions) {
+            a();
+        }
+        return true;
+    }
+
+    bool pass(const Executable & e) {
+        return true;
+    }
+
+    bool pass(const Package & p) {
+        return true;
+    }
 }
 
 
@@ -351,27 +399,30 @@ namespace build {
 int main(int argc, char* argv[]) {
 
     auto o = build::Options(argc, argv);
-    
+
+    bool verbose = o.contains("-v");
+    bool silent = o.contains("-s");
+
     if(o.contains("build")) {
         
         for(const build::Library * l : build::Registry::instance().libraries) {
-            std::cerr << "building " << l->name << " with " << l->settings << std::endl;
-            for(const std::string & s : l->sources) {
-                std::cerr << "* " << s << std::endl;
-            }
+            pass(*l);
         }
 
-        /*
-        for(auto e : build::Registry::instance().executables) {
-            std::cerr << e.data->name << std::endl;
+        for(const build::Executable * e : build::Registry::instance().executables) {
+            pass(*e);
         }
-        */
 
         return 0;
     }
 
     if(o.is(1, "run")) {
         std::cerr << "building + running" << std::endl;
+        return 0;
+    }
+
+    if(o.is(1, "publish")) {
+        std::cerr << "building + publishing" << std::endl;
         return 0;
     }
 
