@@ -8,4 +8,3 @@ auto o = build::Library("other")
 auto t = build::Library("third")
          .source("third.cpp")
          .header("third.hpp");
-
