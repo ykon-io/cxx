@@ -12,7 +12,12 @@ namespace cxx
 
             template<typename T>
             i32(T value): value(value) {
-                static_assert(std::is_same<T, int32_t>::value, "i32 only constructable from 32bit signed integer type.");
+                constexpr bool accept = std::is_same<T, int8_t>::value  ||
+                                        std::is_same<T, int16_t>::value ||
+                                        std::is_same<T, int32_t>::value ||
+                                        std::is_same<T, uint8_t>::value ||
+                                        std::is_same<T, uint16_t>::value;
+                static_assert(accept, "i32 only constructable from 32bit signed integer type.");
             }
 
             static i32 max() {
