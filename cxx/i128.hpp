@@ -82,6 +82,14 @@ namespace cxx
         return a.c() - b.c();
     }
 
+    bool operator==(i128 a, i128 b) {
+        return a.c() == b.c();
+    }
+
+    bool operator!=(i128 a, i128 b) {
+        return a.c() != b.c();
+    }
+
     std::ostream & operator<<(std::ostream & stream, i128 value) {
         return stream << value.c();
     }
