@@ -33,6 +33,5 @@ namespace cxx
         };
     
         void seed();
-        // cxx::random(0, 1, dist);
     };
 }
