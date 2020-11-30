@@ -69,11 +69,33 @@ std::string strcat(A a, As ... as) {
     return s;
 }
 
+struct Slice {
+    template<size_t S>
+    Slice(const char (&s)[S]) {
+        data = s;
+        size = S;
+    }
+
+    int size;
+    const char * data; 
+};
+
+void test(const Slice & s) {
+    std::cerr << s.data << std::endl;
+}
+
 int main()
 {
+    if(arg.contains("hello")) {
+        std::cerr << "we're welcome :)" << std::endl;
+    }
+
+    if(arg.is(1, "hello")) {
+        std::cerr << "match!" << std::endl;
+    }
+
     auto sct = strcat("hello", " ", "i'm", " ", "lol", " ", std::string("max"));
     std::cerr << "catted: " << sct << std::endl;
-
 
     Model<int> model;
 
@@ -154,8 +176,6 @@ int main()
 
     s.print();
     s.draw();
-
-    std::cerr << "Hi " << arg.size() << " " << arg[0];
 
     std::cerr << platform::isAndroid() << std::endl;
     std::cerr << platform::isIos() << std::endl;
