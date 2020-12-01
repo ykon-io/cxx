@@ -1,55 +1,49 @@
 #include "cxx/build.hpp"
-#include "other/build.cpp"
-#include <iostream>
-
-void hello() {
-    std::cout << "hello" << std::endl;
-}
 
 auto s = build::Settings::clang()
          .o3()
          .cxx11();
 
-auto l = build::Library("compute")
-         .depend(
-             "protobuf:1.6.0",
-             "qt:6.0.0",
-             "pytorch:1.5.0",
-             "tiff:0.9.0",
-             "libpng:1.4.2",
-             "onnx:1.5.0"
-         )
-         .before(
-             hello,
-             hello
-         )
-         .source(
-             "src/*.cpp",
-             "a.cpp",
-             "b.cpp",
-             "c.cpp",
-             "d.cpp",
-             "e.cpp"
-         )
-         .source_if(true,
-             "0.cpp",
-             "1.cpp",
-             "2.cpp"
-         )
-         .header(
-             "a.hpp",
-             "b.hpp",
-             "src/*.hpp"
-         )
-         .header_if(true,
-            "0.hpp",
-            "1.hpp",
-            "2.hpp"
-         )
-         .after(hello)
-         .config(s);
-    
-auto e = build::Executable("cli")
-         .source("c.cpp")
-         .header("h.hpp")
-         .depend(t);
+build::Library l = {
+    .name = "lib",
+    .sources = {
+        "a.cpp",
+        "b.cpp",
+        build::when {
+            true,
+            "c.cpp"
+            "d.cpp"
+        }
+    },
+    .include = {
+        "a.hpp",
+        "b.hpp"
+    },
+    .settings = s
+};
+
+build::Executable e = {
+    .name = "exe",
+    .sources = {
+        "exe.cpp"
+    },
+    .objects = {
+        l.objects
+    }
+};
+
+build::Package p = { 
+    .name = "package", 
+    .version = "1.0.0",
+    .authors = { 
+        "Author Name <example@mail.com>"
+    },
+    .license = "MIT/Apache-2.0",
+    .readme = "README.md",
+    .keywords = { 
+        "build",
+        "example", 
+        "test"
+    },
+    .description = "stuff"
+};

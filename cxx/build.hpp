@@ -13,19 +13,23 @@ namespace build {
     struct Package;
     struct Settings;
 
-    struct Cache {
 
-        Cache() {
-        }
-
-        void request(const Library & l, const Settings & s) {
-            // check if Library exists
-            // check if Settings were compiled for library
-            // 
-        }
-
-        std::string path = "~";
+    template<class ... Args>
+    struct when {
+        when(bool c, Args ... args) {}
+        operator std::string() { return ""; }
     };
+
+/*
+    T = ├
+    V = │
+    H = ─
+    L = └
+
+    │                        
+    ├──                                  
+    └── 
+    */
 
     struct Registry {
 
@@ -34,24 +38,62 @@ namespace build {
             return r;
         }
 
-        static void add(const Library * l) {
+        static void add(const Library * l) {            
+            std::cerr << "register library " << l << std::endl;
             instance().libraries.insert(l);
         }
 
         static void add(const Executable * e) {
+            std::cerr << "register executable " << e << std::endl;
             instance().executables.insert(e);
         }
 
+        static void add(const Package * p) {
+            std::cerr << "register package " << p << std::endl;
+            instance().packages.insert(p);
+        }
+
         static void remove(const Library * l) {
+            std::cerr << "remove library " << l << std::endl;
             instance().libraries.erase(l);
         }
 
         static void remove(const Executable * e) {
+            std::cerr << "remove executable " << e << std::endl;
             instance().executables.erase(e);
+        }
+
+        static void remove(const Package * p) {
+            std::cerr << "remove package " << p << std::endl;
+            instance().packages.erase(p);
         }
 
         std::unordered_set<const Library *> libraries;
         std::unordered_set<const Executable *> executables;
+        std::unordered_set<const Package *> packages;
+    };
+
+    template<class T>
+    struct Register {
+        Register() {
+            Registry::add(static_cast<T*>(this));
+        }
+
+        ~Register() {
+            Registry::remove(static_cast<T*>(this));
+        }
+    };
+
+    struct Package: Register<Package> {
+        std::string name;
+        std::string version;
+        std::vector<std::string> authors;
+        std::string license;
+        std::string readme;
+        std::vector<std::string> keywords;
+        std::string repository;
+        std::string homepage;
+        std::string description;
     };
 
     struct Settings {
@@ -207,119 +249,20 @@ namespace build {
         return stream;
     }
 
-    template<class Derived>
-    struct Target {
-
+    struct Library: Register<Library> {
         std::string name;
         std::vector<std::string> sources;
-        std::vector<std::string> headers;
+        std::vector<std::string> include;
         std::vector<std::string> objects;
-        std::vector<std::function<void()>> before_functions;
-        std::vector<std::function<void()>> after_functions;
         Settings settings;
-
-        Target(const std::string & name): name(name) {
-            Registry::add(static_cast<Derived*>(this));
-        }
-
-        Target(const Target & l): name(l.name),
-                                    sources(l.sources),
-                                    headers(l.headers),
-                                    objects(l.objects),
-                                    before_functions(l.before_functions),
-                                    after_functions(l.after_functions),
-                                    settings(l.settings) {
-            Registry::add(static_cast<Derived*>(this));
-        }
-
-        ~Target() {
-            Registry::remove(static_cast<Derived*>(this));
-        }
-
-        template<class F, class... Fs>
-        Derived & source(F f, Fs... fs) {
-            sources.push_back(f);
-            if constexpr (sizeof...(fs) > 0) source(fs...);
-            return *static_cast<Derived*>(this);
-        }
-        
-        template<class F, class... Fs>
-        Derived & source_if(bool c, F f, Fs... fs) {
-            if(c) source(f, fs...);
-            return *static_cast<Derived*>(this);
-        }
-
-        template<class F, class... Fs>
-        Derived & header(F f, Fs... fs) {
-            headers.push_back(f);
-            if constexpr (sizeof...(fs) > 0) header(fs...);
-            return *static_cast<Derived*>(this);
-        }
-
-        template<class F, class... Fs>
-        Derived & header_if(bool c, F f, Fs... fs) {
-            if(c) header(f, fs...);
-            return *static_cast<Derived*>(this);
-        }
-
-        template<class F, class... Fs>
-        Derived & object(F f, Fs... fs) {
-            objects.push_back(f);
-            if constexpr (sizeof...(fs) > 0) objects(fs...);
-            return *static_cast<Derived*>(this);
-        }
-
-        template<class F, class... Fs>
-        Derived & object_if(bool c, F f, Fs... fs) {
-            if(c) objects(f, fs...);
-            return *static_cast<Derived*>(this);
-        }
-
-        Derived & config(const Settings & s) {
-            settings = s;
-            return *static_cast<Derived*>(this);
-        }
-
-        template<class F, class... Fs>
-        Derived & before(F f, Fs... fs) {
-            before_functions.push_back(f);
-            if constexpr (sizeof...(fs) > 0) before(fs...);
-            return *static_cast<Derived*>(this);
-        }
-
-        template<class F, class... Fs>
-        Derived & before_if(bool c, F f, Fs... fs) {
-            if(c) before(f, fs...);
-            return *static_cast<Derived*>(this);
-        }
-
-        template<class F, class... Fs>
-        Derived & after(F f, Fs... fs) {
-            after_functions.push_back(f);
-            if constexpr (sizeof...(fs) > 0) after(fs...);
-            return *static_cast<Derived*>(this);
-        }
-
-        template<class F, class... Fs>
-        Derived & after_if(bool c, F f, Fs... fs) {
-            if(c) after(f, fs...);
-            return *static_cast<Derived*>(this);
-        }
-
-        template<class F, class... Fs>
-        Derived & depend(F f, Fs... fs) {
-            return *static_cast<Derived*>(this);
-        }
     };
 
-    struct Library: Target<Library> {
-        Library(const std::string & name): Target(name) {
-        }
-    };
-
-    struct Executable: Target<Executable> {
-        Executable(const std::string & name): Target(name) {
-        }
+    struct Executable: Register<Executable> {
+        std::string name;
+        std::vector<std::string> sources;
+        std::vector<std::string> objects;
+        std::vector<Library> libraries;
+        Settings settings;
     };
 
     struct Options {
@@ -350,10 +293,6 @@ namespace build {
         char ** argv;
     };
 
-    class Graph {
-        
-    };
-
     std::string include_string(const std::vector<std::string> & includes) {
         std::string s;
         for(const std::string & i : includes) {
@@ -368,19 +307,11 @@ namespace build {
     }
 
     bool pass(const Library & l) {
-        auto includes = build::include_string(l.headers);
+        auto includes = build::include_string(l.include);
         std::cerr << "building " << l.name 
                   << " with " << l.settings << includes << std::endl;
-        for(const auto & b : l.before_functions) {
-            b();
-        }
-
         for(const std::string & s : l.sources) {
             std::cerr << "* " << s << std::endl;
-        }
-
-        for(const auto & a : l.after_functions) {
-            a();
         }
         return true;
     }
